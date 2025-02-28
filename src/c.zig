@@ -1,3 +1,3 @@
 pub usingnamespace @cImport({
-    @cInclude("postgresql/libpq-fe.h");
+    @cInclude("libpq-fe.h");
 });

@@ -1,0 +1,20 @@
+.{
+    .name = "zigorm",
+    .version = "0.0.0",
+    .minimum_zig_version = "0.13.0",
+
+    .dependencies = .{
+        .libpq = .{
+            .url = "https://github.com/allyourcodebase/libpq/archive/refs/tags/5.16.4+2.zip",
+            .hash = "12204c61e935952079924989300e8a1aaeafe2884ee89a313bde1ccfdd8d203e4e06",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        // For example...
+        //"LICENSE",
+        //"README.md",
+    },
+}
