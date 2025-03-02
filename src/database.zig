@@ -287,7 +287,7 @@ pub fn Database(comptime D: type) type {
             }
         }
 
-        pub fn connect(self: *Self, conn_str: [:0]const u8) !void {
+        pub fn connect(self: *Self, conn_str: []const u8) !void {
             try self.driver.connect(conn_str);
         }
 
@@ -311,7 +311,7 @@ pub fn Database(comptime D: type) type {
             const sql = try self.driver.selectQueryToSql(SelectType, query);
             defer self.driver.free(sql);
 
-            const db_result = try self.driver.exec(sql[0.. :0]);
+            const db_result = try self.driver.exec(sql);
 
             return db_result;
         }
@@ -320,7 +320,7 @@ pub fn Database(comptime D: type) type {
             const sql = try self.driver.insertQueryToSql(InsertQuery, query);
             defer self.driver.free(sql);
 
-            const db_result = try self.driver.exec(sql[0.. :0]);
+            const db_result = try self.driver.exec(sql);
 
             return db_result;
         }
@@ -329,7 +329,7 @@ pub fn Database(comptime D: type) type {
             const sql = try self.driver.deleteQueryToSql(DeleteQuery, query);
             defer self.driver.free(sql);
 
-            const db_result = try self.driver.exec(sql[0.. :0]);
+            const db_result = try self.driver.exec(sql);
             return db_result;
         }
 
@@ -337,7 +337,9 @@ pub fn Database(comptime D: type) type {
             const sql = try self.driver.deleteAllQueryToSql(DeleteAllQuery);
             defer self.driver.free(sql);
 
-            const db_result = try self.driver.exec(sql[0.. :0]);
+            std.debug.print("sql: {s}\n", .{sql});
+
+            const db_result = try self.driver.exec(sql);
             return db_result;
         }
     };
@@ -473,11 +475,11 @@ pub const PqDriver = struct {
         self.allocator.free(val);
     }
 
-    pub fn connect(self: *Self, url: [:0]const u8) !void {
-        const conn_info = url;
-        defer self.allocator.free(conn_info);
+    pub fn connect(self: *Self, url: []const u8) !void {
+        const conn_info: [*c]const u8 = @ptrCast(url);
+        //defer self.allocator.free(conn_info);
         if (c.PQconnectdb(conn_info)) |conn| {
-            std.debug.print("Connection established: {any}\n", .{conn});
+            std.debug.print("Connection handle received: {any}\n", .{conn});
             self._conn = conn;
         }
 
@@ -494,13 +496,13 @@ pub const PqDriver = struct {
         c.PQfinish(self._conn);
     }
 
-    pub fn exec(self: Self, query: [:0]const u8) !Result {
+    pub fn exec(self: Self, query: []const u8) !Result {
         if (!self.connected) {
             return Error.NotConnected;
         }
 
-        const cstr_query = query;
-        defer self.allocator.free(cstr_query);
+        const cstr_query: [*c]const u8 = @ptrCast(query);
+        //defer self.allocator.free(cstr_query);
 
         const res = c.PQexec(self._conn, cstr_query);
 
@@ -730,19 +732,19 @@ test "pq" {
     defer if (gpa.deinit() != .ok) @panic("Detected memory leaks\n");
 
     var pq = PqDriver.init(gpa.allocator());
-    // pq.connect("postgresql://postgres:postgres@127.0.0.1:54322/postgres?sslmode=disable") catch |err| {
-    //     std.log.err("Error connecting to database: {}\n", .{err});
-    // };
+    pq.connect("postgresql://postgres:postgres@192.168.0.107:54322/postgres?sslmode=disable") catch |err| {
+        std.log.err("Error connecting to database: {}\n", .{err});
+    };
     defer pq.finish();
 
-    // _ = try pq.exec("delete from test_table");
-    //
-    // _ = try pq.exec("insert into test_table (test_value) values('zig');");
+    _ = try pq.exec("delete from test_table");
 
-    // var res = try pq.exec("select * from test_table");
-    //
-    // const column_name = res.columnName(1).?;
-    // try std.testing.expect(std.mem.eql(u8, column_name, "test_value"));
+    _ = try pq.exec("insert into test_table (test_value) values('zig');");
+
+    var res = try pq.exec("select * from test_table");
+
+    const column_name = res.columnName(1).?;
+    try std.testing.expect(std.mem.eql(u8, column_name, "test_value"));
 }
 
 test "orm" {
@@ -758,7 +760,7 @@ test "orm" {
 
     const PqDatabase = Database(PqDriver);
     var db = PqDatabase.init(std.testing.allocator);
-    try db.connect("postgresql://postgres:postgres@127.0.0.1:54322/postgres?sslmode=disable");
+    try db.connect("postgresql://postgres:postgres@192.168.0.107:54322/postgres?sslmode=disable");
 
     try db.deleteAll(UserModel).send();
 
