@@ -504,6 +504,8 @@ pub const PqDriver = struct {
         const cstr_query: [*c]const u8 = @ptrCast(query);
         //defer self.allocator.free(cstr_query);
 
+        std.debug.print("Executing query: {s}\n", .{query});
+
         const res = c.PQexec(self._conn, cstr_query);
 
         const response_code = c.PQresultStatus(res);
@@ -559,6 +561,7 @@ pub const PqDriver = struct {
         }
 
         try out.writeAll(";");
+        try string_builder.append(0);
 
         return string_builder.toOwnedSlice();
     }
@@ -595,6 +598,7 @@ pub const PqDriver = struct {
         }
 
         try out.writeAll(");");
+        try string_builder.append(0);
 
         return string_builder.toOwnedSlice();
     }
@@ -627,6 +631,7 @@ pub const PqDriver = struct {
         }
 
         try out.writeAll(";");
+        try string_builder.append(0);
 
         return string_builder.toOwnedSlice();
     }
@@ -638,6 +643,7 @@ pub const PqDriver = struct {
         var out = string_builder.writer();
 
         try out.print("delete from {s};", .{QueryType.Model.Table});
+        try string_builder.append(0);
 
         return string_builder.toOwnedSlice();
     }
